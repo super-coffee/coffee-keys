@@ -130,3 +130,5 @@ dmypy.json
 
 # Settings File
 settings.py
+debug.cmd
+caddy.exe

@@ -64,15 +64,44 @@ def verifyPassword():
         if recaptcha.verify(g_recaptcha_response):
             u_mail = request.args['mail']
             u_password = request.args['password']
-            _, d_password = database.query_password(u_mail)
-            if database.check_password(u_password, base64.b64decode(d_password).decode()):
-                return {'status': True, 'data': '验证成功'}
-            else:
-                return {'status': False, 'data': '验证失败'}
+            if database.is_exist(u_mail):
+                d_status, d_password = database.query_password(u_mail)
+                if d_status:
+                    if database.check_password(u_password, base64.b64decode(d_password).decode()):
+                        return {'status': True, 'data': '验证成功'}
+                else:
+                    return 'server error', 500
         else:
             return errors.recaptcha_verify_failed
     else:
         return errors.recaptcha_not_found
+
+
+@app.route('/api/updateInfo', methods=['POST'])
+def addNew():
+    g_recaptcha_response = request.form['g-recaptcha-response']
+    if recaptcha.verify(g_recaptcha_response):
+        u_name = request.form['name']
+        u_mail = request.form['mail']
+        password = request.form['password'] if request.form['password'] == request.form['repeat-password'] else False
+        if not password:
+            return redirect(f'/updataKey.html?msg=输入的密码不相同', 302)
+        u_password = database.encrypt_password(
+            request.form['password'].encode())  # BASE64 交给 database.py
+        u_pubkey = request.form['pubkey']
+        u_uuid = database.get_u_uuid(u_mail)
+        u_date = database.get_u_date()
+        id_status, u_id = database.find_ID(u_mail)
+        if id_status:
+            status, msg = database.update(u_uuid, u_name, u_mail, u_password, u_pubkey, u_date, u_id)
+            if status:
+                return redirect(f'/searchKey.html?mail={u_mail}&msg=添加成功', 302)
+            else:
+                return redirect(f'/searchKey.html?mail={u_mail}&msg={msg}', 302)
+        else:
+            return 'server error', 500
+    else:
+        return redirect(f'/updataKey.html?msg=reCAPTCHA 令牌无效', 302)
 
 
 @app.route('/api/recaptcha/getSiteKey')
