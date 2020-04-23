@@ -78,7 +78,7 @@ def verifyPassword():
 
 
 @app.route('/api/updateInfo', methods=['POST'])
-def addNew():
+def update():
     g_recaptcha_response = request.form['g-recaptcha-response']
     if recaptcha.verify(g_recaptcha_response):
         u_name = request.form['name']
