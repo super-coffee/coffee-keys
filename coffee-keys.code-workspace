@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"name": "Documentation",
+			"path": "docs"
+		},
+		{
+			"name": "Python Server",
+			"path": "server"
+		},
+		{
+			"name": "Web Front-end",
+			"path": "web"
+		}
+	],
+	"settings": {}
+}
