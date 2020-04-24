@@ -86,19 +86,17 @@ def is_exist(u_mail):
 
 def find(u_mail):
     """根据邮箱查询，不返回 password 字段"""
-    sql = f"""SELECT * FROM `{settings.Database.table}` WHERE mail = '{u_mail}'"""
+    sql = f"""SELECT name, mail, pubkey, date FROM `{settings.Database.table}` WHERE mail = '{u_mail}'"""
     try:
         cursor.execute(sql)
         # 获取所有记录列表
         results = cursor.fetchall()
         row = results[0]
         data = {
-            'id': row[0],
-            'uuid': row[1],
-            'name': row[2],
-            'mail': row[3],
-            'pubkey': row[5],
-            'date': str(row[6])
+            'name': row[0],
+            'mail': row[1],
+            'pubkey': row[2],
+            'date': str(row[3])
         }
         return True, data
     except Exception as e:
@@ -197,4 +195,4 @@ def reformat_id():
 
 
 if __name__ == "__main__":
-    reformat_id()
+    print(find('charlieyu4994@outlook.com'))
