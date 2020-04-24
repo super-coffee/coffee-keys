@@ -4,7 +4,6 @@ var verifyPassword = new Vue({
         opt_widget_id: null
     }
 });
-
 var checkPassword = new Vue({
     el: '#checkPassword',
     data: {
@@ -17,6 +16,14 @@ var checkPassword = new Vue({
             // `this` 指向 vm 实例
             return this.password == this.repeat_password;
         }
+    }
+});
+var updateInfo = new Vue({
+    el: "#updateInfo",
+    data: {
+        name: null,
+        mail: null,
+        pubkey: null
     }
 });
 
@@ -83,8 +90,8 @@ layui.use('form', function () {
                             var layer = layui.layer;
                             layer.msg(response.data.data);
                         });
-                        grecaptcha.reset(verifyPassword.opt_widget_id);
                     }
+                    grecaptcha.reset(verifyPassword.opt_widget_id);
                 })
                 .catch(error => {
                     console.log(error);
