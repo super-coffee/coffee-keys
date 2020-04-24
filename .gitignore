@@ -128,7 +128,10 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Settings File
+# Project Files
 settings.py
 debug.cmd
 caddy.exe
+Caddyfile
+frpc.exe
+la-us-2.ini
