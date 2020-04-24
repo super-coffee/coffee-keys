@@ -49,14 +49,14 @@ def encrypt_password(original_password):
 def add_new(u_uuid, u_name, u_mail, u_password, u_pubkey, u_date):
     """新增数据"""
     sql = f"""INSERT INTO `{settings.Database.table}` (`uuid`, `name`, `mail`, `password`, `pubkey`, `date`)
-    VALUES ('{u_uuid}', '{u_name}', '{u_mail}', '{pymysql.escape_string(base64.b64encode(u_password).decode())}',
-            '{u_pubkey}', '{u_date}')"""
+    VALUES (%s, %s, %s, %s, %s, %s)"""
     try:
         if is_exist(u_mail):
             m = 'Data has already exists'
             print(m)
             return False, m
-        cursor.execute(sql)
+        cursor.execute(sql, (u_uuid, u_name, u_mail, pymysql.escape_string(base64.b64encode(u_password).decode()),
+        u_pubkey, u_date))
         # 提交到数据库执行
         db.commit()
         m = 'Added'
@@ -121,10 +121,9 @@ def query_password(u_mail):
 
 def find_ID(u_mail):
     """根据邮箱查询 id 字段"""
-    sql = """SELECT id FROM `{table}` WHERE mail = '{u_mail}'""".format(
-        table=settings.Database.table, u_mail=u_mail)
+    sql = f"""SELECT id FROM `{settings.Database.table}` WHERE mail = %s"""
     try:
-        cursor.execute(sql)
+        cursor.execute(sql, u_mail)
         result = cursor.fetchall()
         return True, result[0][0]
     except Exception as e:
@@ -132,13 +131,13 @@ def find_ID(u_mail):
         return False, errors.hack_warning
 
 
-def update(u_uuid, u_name, u_mail, u_password, u_pubkey, u_date, ID):
+def update(u_uuid, u_name, u_mail, u_password, u_pubkey, u_date, u_id):
     """根据id字段更新数据库"""
+    sql = f"""UPDATE `{settings.Database.table}` SET uuid=%s, name=%s, mail=%s,
+            password=%s, pubkey=%s, date=%s WHERE id={u_id}"""
     try:
-        cursor.execute("""UPDATE `{table}` SET uuid='{u_uuid}', name='{u_name}', mail='{u_mail}',
-            password='{u_password}', pubkey='{u_pubkey}', date='{u_date}' WHERE id='{id}'""".format(
-            table=settings.Database.table, u_uuid=u_uuid, u_name=u_name, u_mail=u_mail,
-            u_password=pymysql.escape_string(base64.b64encode(u_password).decode()), u_pubkey=u_pubkey, u_date=u_date, id=ID))
+        cursor.execute(sql, u_uuid, u_name, u_mail,
+        pymysql.escape_string(base64.b64encode(u_password).decode()), u_pubkey, u_date)
         db.commit()
         return True
     except:
@@ -194,4 +193,8 @@ def reformat_id():
 
 
 if __name__ == "__main__":
-    print(find('charlieyu4994@outlook.com'))
+    u_datetime = get_u_date()
+    _, u_id = find_ID('test')
+    print(u_id)
+    update('Error', 'Error', 'Error', 'Error'.encode(), 'Error', u_datetime, u_id)
+    print(find('test'))
