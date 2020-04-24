@@ -1,7 +1,7 @@
 import json
 import base64
 
-from flask import Flask, redirect, render_template, request
+from flask import Flask, redirect, render_template, request, session
 
 import database
 import errors
@@ -9,7 +9,9 @@ import recaptcha
 import settings
 
 app = Flask(__name__)
-
+# 这个key务必自行修改！
+app.secret_key = "jiliguala%%#%^&&"
+# ToDo CSRF
 
 @app.route('/api/is_exist', methods=['GET'])
 def is_exist():
@@ -57,6 +59,16 @@ def searchKey():
         return {'status': exist, 'data': '信息不存在'}
 
 
+@app.route('/api/verifyAuthenticate', methods=['GET'])
+def verifyAuthenticate():
+    username = session['username']
+    if username != "":
+        return {'status': 1, 'data': username}
+    else:
+        return errors.permission_forbidden
+    pass
+
+
 @app.route('/api/verifyPassword', methods=['GET'])
 def verifyPassword():
     if 'g-recaptcha-response' in request.args:
@@ -64,49 +76,16 @@ def verifyPassword():
         if recaptcha.verify(g_recaptcha_response):
             u_mail = request.args['mail']
             u_password = request.args['password']
-            if database.is_exist(u_mail):
-                d_status, d_password = database.query_password(u_mail)
-                if d_status:
-                    if database.check_password(u_password, base64.b64decode(d_password).decode()):
-                        return {'status': True, 'data': '验证成功'}
-                    else:
-                        return {'status': False, 'data': '验证失败'}
-                else:
-                    return {'status': False, 'data': '服务器错误'}
+            _, d_password = database.query_password(u_mail)
+            if database.check_password(u_password, base64.b64decode(d_password).decode()):
+                session['username'] = u_mail
+                return {'status': True, 'data': '验证成功'}
             else:
-                {'status': False, 'data': '邮箱不存在'}
+                return {'status': False, 'data': '验证失败'}
         else:
             return errors.recaptcha_verify_failed
     else:
         return errors.recaptcha_not_found
-
-
-@app.route('/api/updateInfo', methods=['POST'])
-def update():
-    g_recaptcha_response = request.form['g-recaptcha-response']
-    if recaptcha.verify(g_recaptcha_response):
-        u_name = request.form['name']
-        u_mail = request.form['mail']
-        password = request.form['password'] if request.form['password'] == request.form['repeat-password'] else False
-        if not password:
-            return redirect(f'/updataKey.html?msg=输入的密码不相同', 302)
-        u_password = database.encrypt_password(
-            request.form['password'].encode())  # BASE64 交给 database.py
-        u_pubkey = request.form['pubkey']
-        u_uuid = database.get_u_uuid(u_mail)
-        u_date = database.get_u_date()
-        id_status, u_id = database.find_ID(u_mail)
-        if id_status:
-            status, msg = database.update(u_uuid, u_name, u_mail, u_password, u_pubkey, u_date, u_id)
-            if status:
-                return redirect(f'/searchKey.html?mail={u_mail}&msg=添加成功', 302)
-            else:
-                return redirect(f'/searchKey.html?mail={u_mail}&msg={msg}', 302)
-        else:
-            return 'server error', 500
-    else:
-        return redirect(f'/updataKey.html?msg=reCAPTCHA 令牌无效', 302)
-
 
 @app.route('/api/recaptcha/getSiteKey')
 def recaptcha_getSiteKey():
@@ -121,6 +100,25 @@ def ui_common():
 @app.route('/api/Ui/index')
 def ui_index():
     return json.dumps(settings.Ui.index)
+
+
+# 登录控制
+@app.before_request
+def before(*args, **kwargs):
+    # allow to visit without login
+    allow_visit = [
+        '/api/newKey',
+        '/api/Ui/index',
+        '/api/Ui/common',
+        '/api/recaptcha/getSiteKey',
+        '/api/verifyPassword'
+    ]
+    if request.path in allow_visit:
+        return None
+    user = session.get('username')
+    if user:
+        return None
+    return errors.permission_forbidden
 
 
 if __name__ == "__main__":
