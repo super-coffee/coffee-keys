@@ -6,6 +6,7 @@ import uuid
 import bcrypt
 import pymysql
 
+import errors
 import settings
 
 # 连接数据库
@@ -73,22 +74,22 @@ def is_exist(u_mail):
     根据邮箱查询，检查是否存在；
     False 是不重复
     """
-    sql = f"""SELECT * FROM `{settings.Database.table}` WHERE mail = '{u_mail}'"""
+    sql = f"""SELECT * FROM `{settings.Database.table}` WHERE mail = %s"""
     try:
-        cursor.execute(sql)
+        cursor.execute(sql, u_mail)
         # 获取所有记录列表
         results = cursor.fetchall()
         return True if len(results) > 0 else False
     except Exception as e:
-        print(e)
+        print(repr(e))
         return True
 
 
 def find(u_mail):
     """根据邮箱查询，不返回 password 字段"""
-    sql = f"""SELECT name, mail, pubkey, date FROM `{settings.Database.table}` WHERE mail = '{u_mail}'"""
+    sql = f"""SELECT name, mail, pubkey, date FROM `{settings.Database.table}` WHERE mail = %s"""
     try:
-        cursor.execute(sql)
+        cursor.execute(sql, u_mail)
         # 获取所有记录列表
         results = cursor.fetchall()
         row = results[0]
@@ -100,24 +101,22 @@ def find(u_mail):
         }
         return True, data
     except Exception as e:
-        print(e)
-        return False, repr(e)
+        print(repr(e))
+        return False, errors.hack_warning
 
 
 def query_password(u_mail):
     """根据邮箱查询 password 字段"""
-    sql = """SELECT password FROM `{table}` WHERE mail = '{u_mail}'""".format(
-        table=settings.Database.table, u_mail=u_mail)
+    sql = f"""SELECT password FROM `{settings.Database.table}` WHERE mail = %s"""
     try:
-        cursor.execute(sql)
+        cursor.execute(sql, u_mail)
         # 获取所有记录列表
         results = cursor.fetchall()
         print(results[0][0])
         return True, results[0][0]
-    except:
-        m = 'Error: unable to fetch data'
-        print(m)
-        return False, m
+    except Exception as e:
+        print(repr(e))
+        return False, errors.hack_warning
 
 
 def find_ID(u_mail):
@@ -129,8 +128,8 @@ def find_ID(u_mail):
         result = cursor.fetchall()
         return True, result[0][0]
     except Exception as e:
-        print(e)
-        return False, repr(e)
+        print(repr(e))
+        return False, errors.hack_warning
 
 
 def update(u_uuid, u_name, u_mail, u_password, u_pubkey, u_date, ID):

@@ -69,8 +69,12 @@ def verifyPassword():
                 if d_status:
                     if database.check_password(u_password, base64.b64decode(d_password).decode()):
                         return {'status': True, 'data': '验证成功'}
+                    else:
+                        return {'status': False, 'data': '验证失败'}
                 else:
-                    return 'server error', 500
+                    return {'status': False, 'data': '服务器错误'}
+            else:
+                {'status': False, 'data': '邮箱不存在'}
         else:
             return errors.recaptcha_verify_failed
     else:
