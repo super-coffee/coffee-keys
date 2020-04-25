@@ -163,19 +163,6 @@ def delete(ID):
         return False, m
 
 
-def confirm_authority(u_mail, u_password):
-    """根据mail字段确认操作权限"""
-    try:
-        status, d_password = query_password(u_mail)
-        if status and check_password(u_password, d_password):
-            return True
-        else:
-            return False
-    except:
-        m = 'Error: unable to confirm authority'
-        return False, m
-
-
 def reformat_id():
     """重新排列 id 列"""
     try:
