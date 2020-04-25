@@ -83,29 +83,32 @@ def verifyPassword():
 
 @app.route('/api/updateInfo', methods=['POST'])
 def update():
-    g_recaptcha_response = request.form['g-recaptcha-response']
-    if recaptcha.verify(g_recaptcha_response):
-        u_name = request.form['name']
-        u_mail = request.form['mail']
-        password = request.form['password'] if request.form['password'] == request.form['repeat-password'] else False
-        if not password:
-            return redirect(f'/updataKey.html?msg=输入的密码不相同', 302)
-        u_password = database.encrypt_password(
-            request.form['password'].encode())  # BASE64 交给 database.py
-        u_pubkey = request.form['pubkey']
-        u_uuid = database.get_u_uuid(u_mail)
-        u_date = database.get_u_date()
-        id_status, u_id = database.find_ID(u_mail)
-        if id_status:
-            status, msg = database.update(u_uuid, u_name, u_mail, u_password, u_pubkey, u_date, u_id)
-            if status:
-                return redirect(f'/searchKey.html?mail={u_mail}&msg=添加成功', 302)
+    if 'g-recaptcha-response' in request.form:
+        g_recaptcha_response = request.form['g-recaptcha-response']
+        if recaptcha.verify(g_recaptcha_response):
+            u_name = request.form['name']
+            u_mail = request.form['mail']
+            password = request.form['password'] if request.form['password'] == request.form['repeat-password'] else False
+            if not password:
+                return redirect(f'/updataKey.html?msg=输入的密码不相同', 302)
+            u_password = database.encrypt_password(
+                request.form['password'].encode())  # BASE64 交给 database.py
+            u_pubkey = request.form['pubkey']
+            u_uuid = database.get_u_uuid(u_mail)
+            u_date = database.get_u_date()
+            id_status, u_id = database.find_ID(u_mail)
+            if id_status:
+                status, msg = database.update(u_uuid, u_name, u_mail, u_password, u_pubkey, u_date, u_id)
+                if status:
+                    return redirect(f'/searchKey.html?mail={u_mail}&msg=添加成功', 302)
+                else:
+                    return redirect(f'/searchKey.html?mail={u_mail}&msg={msg}', 302)
             else:
-                return redirect(f'/searchKey.html?mail={u_mail}&msg={msg}', 302)
+                return redirect(f'/updateInfo.html?msg=停止你的黑客行为！', 302)
         else:
-            return 'server error', 500
+            return redirect(f'/updateInfo.html?msg=reCAPTCHA 令牌无效，请尝试刷新页面', 302)
     else:
-        return redirect(f'/updataKey.html?msg=reCAPTCHA 令牌无效', 302)
+        return redirect(f'/updateInfo.html?msg=reCAPTCHA 令牌未找到，停止你的黑客行为！', 302)
 
 
 @app.route('/api/recaptcha/getSiteKey')
