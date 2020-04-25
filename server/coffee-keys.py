@@ -34,7 +34,7 @@ def addNew():
         u_password = database.encrypt_password(
             request.form['password'].encode())  # BASE64 交给 database.py
         u_pubkey = request.form['pubkey']
-        u_uuid = database.get_u_uuid(u_mail)
+        u_uuid = str(database.get_u_uuid(u_mail))
         u_date = database.get_u_date()
         status, msg = database.add_new(
             u_uuid, u_name, u_mail, u_password, u_pubkey, u_date)
@@ -68,9 +68,9 @@ def verifyPassword():
                 d_status, d_password = database.query_password(u_mail)
                 if d_status:
                     if database.check_password(u_password, base64.b64decode(d_password).decode()):
-                        return {'status': True, 'data': '验证成功'}
+                        return {'status': True, 'data': '认证成功'}
                     else:
-                        return {'status': False, 'data': '验证失败'}
+                        return {'status': False, 'data': '认证失败'}
                 else:
                     return {'status': False, 'data': '服务器错误'}
             else:
@@ -88,19 +88,46 @@ def update():
         if recaptcha.verify(g_recaptcha_response):
             u_name = request.form['name']
             u_mail = request.form['mail']
-            password = request.form['password'] if request.form['password'] == request.form['repeat-password'] else False
-            if not password:
-                return redirect(f'/updataKey.html?msg=输入的密码不相同', 302)
-            u_password = database.encrypt_password(
-                request.form['password'].encode())  # BASE64 交给 database.py
+            u_password = request.form['password']
+            origin_mail = request.form['originMail']
+            origin_password = request.form['originPassword']
+            has_new_password = False if u_password == '' else True
+            # 过滤异常请求，分为更改了密码和未更改密码
+            if has_new_password:  # 更改了密码
+                u_repeat_password = request.form['repeat-password']
+                password = u_password if u_password == u_repeat_password else False
+                if not password:
+                    return redirect(f'/updateInfo.html?msg=输入的密码不相同', 302)
+                if database.is_exist(origin_mail):
+                    d_status, d_password = database.query_password(origin_mail)
+                    if d_status:
+                        if not database.check_password(origin_password,
+                                                       base64.b64decode(d_password).decode()):
+                            return redirect(f'/updateInfo.html?msg=认证失败', 302)
+                        else:
+                            u_password = database.encrypt_password(
+                                u_password.encode())  # 成功
+                    else:
+                        return redirect(f'/updateInfo.html?msg=原密码查询失败', 302)
+                else:
+                    return redirect(f'/updateInfo.html?msg=邮箱不存在', 302)
+            else:  # 未更改密码
+                qp_status, p_data = database.query_password(origin_mail)
+                if qp_status:
+                    # 成功
+                    u_password = base64.b64decode(p_data).decode()
+                else:
+                    return redirect(f'/updateInfo.html?msg=原密码查询失败', 302)
+            # 执行 update
             u_pubkey = request.form['pubkey']
-            u_uuid = database.get_u_uuid(u_mail)
+            u_uuid = str(database.get_u_uuid(u_mail))
             u_date = database.get_u_date()
-            id_status, u_id = database.find_ID(u_mail)
+            id_status, u_id = database.find_ID(origin_mail)
             if id_status:
-                status, msg = database.update(u_uuid, u_name, u_mail, u_password, u_pubkey, u_date, u_id)
+                status, msg = database.update(
+                    u_uuid, u_name, u_mail, u_password, u_pubkey, u_date, u_id)
                 if status:
-                    return redirect(f'/searchKey.html?mail={u_mail}&msg=添加成功', 302)
+                    return redirect(f'/searchKey.html?mail={u_mail}&msg=更改成功', 302)
                 else:
                     return redirect(f'/searchKey.html?mail={u_mail}&msg={msg}', 302)
             else:
