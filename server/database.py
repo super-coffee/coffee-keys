@@ -55,8 +55,8 @@ def add_new(u_uuid, u_name, u_mail, u_password, u_pubkey, u_date):
             m = 'Data has already exists'
             print(m)
             return False, m
-        cursor.execute(sql, (u_uuid, u_name, u_mail, pymysql.escape_string(base64.b64encode(u_password).decode()),
-        u_pubkey, u_date))
+        u_password = pymysql.escape_string(base64.b64encode(u_password.encode()).decode())
+        cursor.execute(sql, (u_uuid, u_name, u_mail, u_password, u_pubkey, u_date))
         # 提交到数据库执行
         db.commit()
         m = 'Added'
@@ -136,14 +136,14 @@ def update(u_uuid, u_name, u_mail, u_password, u_pubkey, u_date, u_id):
     sql = f"""UPDATE `{settings.Database.table}` SET uuid=%s, name=%s, mail=%s,
             password=%s, pubkey=%s, date=%s WHERE id={u_id}"""
     try:
-        cursor.execute(sql, u_uuid, u_name, u_mail,
-        pymysql.escape_string(base64.b64encode(u_password).decode()), u_pubkey, u_date)
+        u_password = pymysql.escape_string(base64.b64encode(u_password.encode()).decode())
+        cursor.execute(sql, (u_uuid, u_name, u_mail, u_password, u_pubkey, u_date))
         db.commit()
         return True
-    except:
+    except Exception as e:
         m = 'Error: unable to update data'
         db.rollback()
-        print(m)
+        print(e)
         return False, m
 
 
@@ -194,7 +194,12 @@ def reformat_id():
 
 if __name__ == "__main__":
     u_datetime = get_u_date()
-    _, u_id = find_ID('test')
-    print(u_id)
-    update('Error', 'Error', 'Error', 'Error'.encode(), 'Error', u_datetime, u_id)
-    print(find('test'))
+    # add_new('test', 'test', 'test', 'test', 'test', get_u_date())
+    # print(find('test'))
+    # _, u_id = find_ID('Error')
+    # print(u_id)
+    # delete(u_id)
+    cursor.execute(f"SELECT * FROM `{settings.Database.table}`")
+    print(cursor.fetchall())
+    # update('Error', 'Error', 'Error', 'Error', 'Error', u_datetime, u_id)
+    # print(find('test'))
