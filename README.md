@@ -4,7 +4,7 @@ A Key Server, which can store and distribute public key safely and quickly.
 
 ![Python3](https://img.shields.io/badge/Python-3-python?color=3776AB&&logo=python) ![GPLv3](https://img.shields.io/github/license/super-coffee/coffee-keys)
 
-简体中文 | [English](/English.md)
+简体中文 | [English](/README_en.md)
 
 ---
 ## 特点 👍
