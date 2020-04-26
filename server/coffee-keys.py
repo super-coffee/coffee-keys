@@ -1,7 +1,7 @@
 import json
 import base64
 
-from flask import Flask, redirect, render_template, request
+from flask import Flask, redirect, render_template, request, session
 
 import database
 import errors
@@ -9,7 +9,9 @@ import recaptcha
 import settings
 
 app = Flask(__name__)
-
+# 这个key务必自行修改！
+app.secret_key = "jiliguala%%#%^&&"
+# ToDo CSRF
 
 @app.route('/api/is_exist', methods=['GET'])
 def is_exist():
@@ -57,6 +59,16 @@ def searchKey():
         return {'status': exist, 'data': '信息不存在'}
 
 
+@app.route('/api/verifyAuthenticate', methods=['GET'])
+def verifyAuthenticate():
+    username = session['username']
+    if username != "":
+        return {'status': 1, 'data': username}
+    else:
+        return errors.permission_forbidden
+    pass
+
+
 @app.route('/api/verifyPassword', methods=['GET'])
 def verifyPassword():
     if 'g-recaptcha-response' in request.args:
@@ -74,7 +86,7 @@ def verifyPassword():
                 else:
                     return {'status': False, 'data': '服务器错误'}
             else:
-                {'status': False, 'data': '邮箱不存在'}
+                return {'status': False, 'data': '验证失败'}
         else:
             return errors.recaptcha_verify_failed
     else:
@@ -151,6 +163,25 @@ def ui_common():
 @app.route('/api/Ui/index')
 def ui_index():
     return json.dumps(settings.Ui.index)
+
+
+# 登录控制
+@app.before_request
+def before(*args, **kwargs):
+    # allow to visit without login
+    allow_visit = [
+        '/api/newKey',
+        '/api/Ui/index',
+        '/api/Ui/common',
+        '/api/recaptcha/getSiteKey',
+        '/api/verifyPassword'
+    ]
+    if request.path in allow_visit:
+        return None
+    user = session.get('username')
+    if user:
+        return None
+    return errors.permission_forbidden
 
 
 if __name__ == "__main__":
