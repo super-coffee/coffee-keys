@@ -36,6 +36,8 @@ def check_password(u_password, d_password):
     :param d_password: 数据库中的密码
     :return: Boolean
     """
+    print(u_password)
+    print(d_password)
     return bcrypt.checkpw(u_password.encode(), d_password.encode())
 
 
@@ -55,7 +57,7 @@ def add_new(u_uuid, u_name, u_mail, u_password, u_pubkey, u_date):
             m = 'Data has already exists'
             print(m)
             return False, m
-        u_password = pymysql.escape_string(base64.b64encode(u_password.encode()).decode())
+        u_password = base64.b64encode(u_password).decode()
         cursor.execute(sql, (u_uuid, u_name, u_mail, u_password, u_pubkey, u_date))
         # 提交到数据库执行
         db.commit()
@@ -112,7 +114,6 @@ def query_password(u_mail):
         cursor.execute(sql, u_mail)
         # 获取所有记录列表
         results = cursor.fetchall()
-        print(results[0][0])
         return True, results[0][0]
     except Exception as e:
         print(repr(e))
@@ -136,15 +137,14 @@ def update(u_uuid, u_name, u_mail, u_password, u_pubkey, u_date, u_id):
     sql = f"""UPDATE `{settings.Database.table}` SET uuid=%s, name=%s, mail=%s,
             password=%s, pubkey=%s, date=%s WHERE id={u_id}"""
     try:
-        u_password = pymysql.escape_string(base64.b64encode(u_password.encode()).decode())
+        u_password = base64.b64encode(u_password).decode()
         cursor.execute(sql, (u_uuid, u_name, u_mail, u_password, u_pubkey, u_date))
         db.commit()
-        return True
+        return True, 'ok'
     except Exception as e:
-        m = 'Error: unable to update data'
         db.rollback()
         print(e)
-        return False, m
+        return False, repr(e)
 
 
 def delete(ID):
@@ -160,19 +160,6 @@ def delete(ID):
         m = 'Error: unable to delete data'
         db.rollback()
         print(m)
-        return False, m
-
-
-def confirm_authority(u_mail, u_password):
-    """根据mail字段确认操作权限"""
-    try:
-        status, d_password = query_password(u_mail)
-        if status and check_password(u_password, d_password):
-            return True
-        else:
-            return False
-    except:
-        m = 'Error: unable to confirm authority'
         return False, m
 
 
@@ -193,13 +180,4 @@ def reformat_id():
 
 
 if __name__ == "__main__":
-    u_datetime = get_u_date()
-    # add_new('test', 'test', 'test', 'test', 'test', get_u_date())
-    # print(find('test'))
-    # _, u_id = find_ID('Error')
-    # print(u_id)
-    # delete(u_id)
-    cursor.execute(f"SELECT * FROM `{settings.Database.table}`")
-    print(cursor.fetchall())
-    # update('Error', 'Error', 'Error', 'Error', 'Error', u_datetime, u_id)
-    # print(find('test'))
+    reformat_id()
