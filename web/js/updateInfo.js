@@ -175,7 +175,7 @@ function confirmDelete() {
         layui.use('layer', function () {
             var layer = layui.layer;
             layer.load();
-
+            var form = layui.form;
             var data = form.val("form");
             var doRecaptcha = data["g-recaptcha-response"] == "" ? false : true;  // 三目
             var hasRecaptcha = "g-recaptcha-response" in data;
@@ -204,7 +204,7 @@ function confirmDelete() {
                             if (responseData.status) {
                                 layer.closeAll();
                                 layer.msg("已删除");
-                                window.location("/newKey.html");
+                                window.location.href = "/newKey.html";
                             } else {
                                 layer.msg(responseData.data);
                             };
@@ -219,6 +219,7 @@ function confirmDelete() {
                 };
             };
             grecaptcha.reset(optid);
+            layer.closeAll("loading");
         });
     });
 };
