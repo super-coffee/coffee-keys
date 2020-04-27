@@ -74,7 +74,7 @@ def verifyPassword():
                 else:
                     return {'status': False, 'data': '服务器错误'}
             else:
-                {'status': False, 'data': '邮箱不存在'}
+                return {'status': False, 'data': '邮箱不存在'}
         else:
             return errors.recaptcha_verify_failed
     else:
@@ -136,6 +136,40 @@ def update():
             return redirect(f'/updateInfo.html?msg=reCAPTCHA 令牌无效，请尝试刷新页面', 302)
     else:
         return redirect(f'/updateInfo.html?msg=reCAPTCHA 令牌未找到，停止你的黑客行为！', 302)
+
+
+@app.route('/api/deleteInfo', methods=['DELETE'])
+def deleteInfo():
+    if 'g-recaptcha-response' in request.args:
+        g_recaptcha_response = request.args['g-recaptcha-response']
+        if recaptcha.verify(g_recaptcha_response):
+            u_mail = request.args['mail']
+            u_password = request.args['password']
+            if database.is_exist(u_mail):
+                d_status, d_password = database.query_password(u_mail)
+                if d_status:
+                    if database.check_password(u_password, base64.b64decode(d_password).decode()):
+                        id_status, u_id = database.find_ID(u_mail)
+                        if id_status:
+                            database.delete(u_id)
+                            status, msg = database.reformat_id()
+                            if status:
+                                return {'status': True, 'data': '重新排序成功'}
+                            else:
+                                return {'status': True, 'data': msg}
+                            return {'status': True, 'data': '删除成功'}
+                        else:
+                            return {'status': False, 'data': '服务器错误'}
+                    else:
+                        return {'status': False, 'data': '密码错误'}
+                else:
+                    return {'status': False, 'data': '服务器错误'}
+            else:
+                {'status': False, 'data': '邮箱不存在'}
+        else:
+            return errors.recaptcha_verify_failed
+    else:
+        return errors.recaptcha_not_found
 
 
 @app.route('/api/recaptcha/getSiteKey')
