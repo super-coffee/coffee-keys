@@ -1,4 +1,5 @@
-var opt_widget_id;
+var opt_widget_id;  // 第一个
+var optid;  // 第二个
 
 var twoform = new Vue({
     el: "#twoform",
@@ -70,6 +71,10 @@ layui.use('form', function () {
             canSubmit = true;
         };
         if (canSubmit) {
+            layui.use('layer', function () {
+                var layer = layui.layer;
+                layer.load();
+            });
             var u_mail = data["mail"];
             var u_password = data["password"];
             var g = data["g-recaptcha-response"];
@@ -80,7 +85,7 @@ layui.use('form', function () {
                         // 显示修改的信息框
                         searchKey(twoform.origin.mail);
                         twoform.canShow = true;
-                        grecaptcha();
+                        optid = grecaptcha();
                     } else {
                         layui.use('layer', function () {
                             var layer = layui.layer;
@@ -97,6 +102,7 @@ layui.use('form', function () {
                     });
                     grecaptcha.reset(opt_widget_id);
                 });
+            layer.closeAll('loading');
         }
         return false;  // true → 跳转；false → 不跳转
     });
@@ -140,6 +146,10 @@ layui.use('form', function () {
 
 // searchKey
 function searchKey(userMail) {
+    layui.use('layer', function () {
+        var layer = layui.layer;
+        layer.load();
+    });
     axios
         .get(`/api/searchKey?mail=${userMail}`)
         .then(response => {
@@ -154,4 +164,62 @@ function searchKey(userMail) {
             console.log(error);
             layer.msg("发生了一个异常，请到 Console 查看");
         });
+    layui.use('layer', function () {
+        var layer = layui.layer;
+        layer.closeAll('loading');
+    });
+};
+
+function confirmDelete() {
+    layui.use('form', function () {
+        layui.use('layer', function () {
+            var layer = layui.layer;
+            layer.load();
+            var form = layui.form;
+            var data = form.val("form");
+            var doRecaptcha = data["g-recaptcha-response"] == "" ? false : true;  // 三目
+            var hasRecaptcha = "g-recaptcha-response" in data;
+            var grecaptcharesponse = data["g-recaptcha-response"];
+            var canSubmit = false;
+            // 判断是否可提交
+            if (!doRecaptcha || !hasRecaptcha) {
+                layui.use('layer', function () {
+                    layer.tips('请完成 reCAPTCHA 人机身份验证', '#submit2', {
+                        tips: 3,  // 下
+                        tipsMore: true
+                    });
+                });
+            };
+            if (doRecaptcha && hasRecaptcha) {
+                canSubmit = true;
+            };
+            var userMail = twoform.origin.mail;
+            var userPassword = twoform.origin.password;
+            if (canSubmit) {
+                if (confirm('真的要删除吗？你在删除后无法找回你的信息！') == true) {
+                    axios
+                        .delete(`/api/deleteInfo?mail=${userMail}&password=${userPassword}&g-recaptcha-response=${grecaptcharesponse}`)
+                        .then(response => {
+                            responseData = response.data;
+                            if (responseData.status) {
+                                layer.closeAll();
+                                layer.msg("已删除");
+                                window.location.href = "/newKey.html";
+                            } else {
+                                layer.msg(responseData.data);
+                            };
+                        })
+                        .catch(error => {
+                            console.log(error);
+                            layer.msg("发生了一个异常，请到 Console 查看");
+                        });
+                    layer.msg('正在删除');
+                } else {
+                    layer.msg('已取消');
+                };
+            };
+            grecaptcha.reset(optid);
+            layer.closeAll("loading");
+        });
+    });
 };
