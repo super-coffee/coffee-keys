@@ -6,10 +6,3 @@ if (msg != null) {
         layermsg.msg(msg);
     });
 };
-
-function showMsg(msg) {
-    layui.use('layer', function () {
-        var layermsg = layui.layer;
-        layermsg.msg(msg);
-    });
-}
