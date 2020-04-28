@@ -1,12 +1,3 @@
-// urlParams
-const urlParams = new URLSearchParams(window.location.search);
-let msg = urlParams.get('msg');
-if (msg != null) {
-    layui.use('layer', function () {
-        var layermsg = layui.layer;
-        layermsg.msg(msg);
-    });
-};
 // vue.js
 var pem2text = new Vue({
     el: '#pem2text',

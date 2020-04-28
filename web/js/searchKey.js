@@ -1,15 +1,8 @@
 // urlParams
 const urlParams = new URLSearchParams(window.location.search);
 let userMail = urlParams.get('mail');
-let msg = urlParams.get('msg');
 if (userMail != null) {
     searchKey(userMail);
-};
-if (msg != null) {
-    layui.use('layer', function () {
-        var layermsg = layui.layer;
-        layermsg.msg(msg);
-    });
 };
 
 // vue
@@ -52,4 +45,8 @@ clipboard.on('error', function (e) {
     layer.tips('复制失败，请手动复制', '#pubkey', {
         tips: 3
     });
+});
+
+layui.use('form', function () {
+    var form = layui.form;
 });

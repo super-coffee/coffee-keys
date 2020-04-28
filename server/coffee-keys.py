@@ -34,7 +34,7 @@ def addNew():
         u_password = database.encrypt_password(
             request.form['password'].encode())  # BASE64 交给 database.py
         u_pubkey = request.form['pubkey']
-        u_uuid = str(database.get_u_uuid(u_mail))
+        u_uuid = database.get_u_uuid(u_mail)
         u_date = database.get_u_date()
         status, msg = database.add_new(
             u_uuid, u_name, u_mail, u_password, u_pubkey, u_date)
@@ -120,7 +120,7 @@ def update():
                     return redirect(f'/updateInfo.html?msg=原密码查询失败', 302)
             # 执行 update
             u_pubkey = request.form['pubkey']
-            u_uuid = str(database.get_u_uuid(u_mail))
+            u_uuid = database.get_u_uuid(u_mail)
             u_date = database.get_u_date()
             id_status, u_id = database.find_ID(origin_mail)
             if id_status:
