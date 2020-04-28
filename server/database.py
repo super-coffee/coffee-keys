@@ -94,6 +94,8 @@ def find(u_mail):
         cursor.execute(sql, u_mail)
         # 获取所有记录列表
         results = cursor.fetchall()
+        if len(results) == 0:  # 过滤找不到
+            return False, errors.info_not_found
         row = results[0]
         data = {
             'name': row[0],
