@@ -86,6 +86,7 @@ layui.use('form', function () {
                         searchKey(twoform.origin.mail);
                         twoform.canShow = true;
                         optid = grecaptcha();
+                        bindUploadButton();
                     } else {
                         layui.use('layer', function () {
                             var layer = layui.layer;
@@ -170,6 +171,27 @@ function searchKey(userMail) {
     });
 };
 
+function bindUploadButton() {
+    layui.use('upload', function () {
+        var upload = layui.upload;
+        upload.render({
+            elem: '#uploadpem' //绑定元素
+            , accept: 'file'
+            , url: 'https://httpbin.org/post'  // fake api
+            , exts: 'txt|pem|rsa'
+            , auto: false
+            , choose: function (obj) {
+                //预读本地文件示例，不支持ie8
+                obj.preview(function (_index, _file, result) {
+                    base64edContent = result.replace("data:application/octet-stream;base64,", "");
+                    content = window.atob(base64edContent);
+                    pem2text.content = content;
+                });
+            }
+        });
+    });
+};
+
 function confirmDelete() {
     layui.use('form', function () {
         layui.use('layer', function () {
@@ -221,5 +243,6 @@ function confirmDelete() {
             grecaptcha.reset(optid);
             layer.closeAll("loading");
         });
+        return false;
     });
 };
