@@ -156,7 +156,7 @@ def deleteInfo():
                             if status:
                                 return {'status': True, 'data': '删除成功，重新排序成功'}
                             else:
-                                return {'status': False, 'data': f'服务器错误', 'error': msg}
+                                return {'status': False, 'data': '服务器错误', 'error': msg}
                         else:
                             return {'status': False, 'data': '服务器错误'}
                     else:
@@ -164,7 +164,7 @@ def deleteInfo():
                 else:
                     return {'status': False, 'data': '服务器错误'}
             else:
-                {'status': False, 'data': '邮箱不存在'}
+                return {'status': False, 'data': '邮箱不存在'}
         else:
             return errors.recaptcha_verify_failed
     else:
