@@ -154,10 +154,9 @@ def deleteInfo():
                             database.delete(u_id)
                             status, msg = database.reformat_id()
                             if status:
-                                return {'status': True, 'data': '重新排序成功'}
+                                return {'status': True, 'data': '删除成功，重新排序成功'}
                             else:
-                                return {'status': True, 'data': msg}
-                            return {'status': True, 'data': '删除成功'}
+                                return {'status': True, 'data': f'删除成功，重新排序失败：{msg}'}
                         else:
                             return {'status': False, 'data': '服务器错误'}
                     else:
