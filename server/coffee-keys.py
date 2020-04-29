@@ -156,7 +156,7 @@ def deleteInfo():
                             if status:
                                 return {'status': True, 'data': '删除成功，重新排序成功'}
                             else:
-                                return {'status': True, 'data': f'删除成功，重新排序失败：{msg}'}
+                                return {'status': False, 'data': f'服务器错误', 'error': msg}
                         else:
                             return {'status': False, 'data': '服务器错误'}
                     else:
