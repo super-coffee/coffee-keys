@@ -192,21 +192,24 @@ def confirm_authority(u_mail, u_password):
         return False, repr(e)
 
 
-def reformat_id():
+def reformat_id(u_id):
     """重新排列 id 列"""
     db.ping(reconnect=True)
-    try:
-        cursor.execute("ALTER TABLE `{table}` DROP `id`;".format(
-            table=settings.Database.table))
-        cursor.execute("ALTER TABLE `{table}` ADD `id` INT NOT NULL FIRST;".format(
-            table=settings.Database.table))
-        cursor.execute("ALTER TABLE `{table}` MODIFY COLUMN `id` INT NOT NULL \
-        AUTO_INCREMENT,ADD PRIMARY KEY(id);".format(table=settings.Database.table))
-        db.commit()
-        return True, 'reformated'
-    except Exception as e:
-        print(e)
-        return False, repr(e)
+    if not u_id % 100:
+        try:
+            cursor.execute("ALTER TABLE `{table}` DROP `id`;".format(
+                table=settings.Database.table))
+            cursor.execute("ALTER TABLE `{table}` ADD `id` INT NOT NULL FIRST;".format(
+                table=settings.Database.table))
+            cursor.execute("ALTER TABLE `{table}` MODIFY COLUMN `id` INT NOT NULL \
+                AUTO_INCREMENT,ADD PRIMARY KEY(id);".format(table=settings.Database.table))
+            db.commit()
+            return True, 'reformated'
+        except Exception as e:
+            print(e)
+            return False, repr(e)
+    else:
+        return True, '不需要重新排序'
 
 
 if __name__ == "__main__":

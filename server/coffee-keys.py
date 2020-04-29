@@ -152,7 +152,7 @@ def deleteInfo():
                         id_status, u_id = database.find_ID(u_mail)
                         if id_status:
                             database.delete(u_id)
-                            status, msg = database.reformat_id()
+                            status, msg = database.reformat_id(u_id)
                             if status:
                                 return {'status': True, 'data': '删除成功，重新排序成功'}
                             else:
