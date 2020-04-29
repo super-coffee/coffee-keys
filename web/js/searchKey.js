@@ -1,15 +1,8 @@
 // urlParams
 const urlParams = new URLSearchParams(window.location.search);
 let userMail = urlParams.get('mail');
-let msg = urlParams.get('msg');
 if (userMail != null) {
     searchKey(userMail);
-};
-if (msg != null) {
-    layui.use('layer', function () {
-        var layermsg = layui.layer;
-        layermsg.msg(msg);
-    });
 };
 
 // vue
@@ -29,12 +22,12 @@ function searchKey(userMail) {
             if (responseData.status) {
                 datas.datas = responseData.data;
             } else {
-                layer.msg(responseData.data);
+                showMsg(responseData.data);
             };
         })
         .catch(error => {
             console.log(error);
-            layer.msg("发生了一个异常，请到 Console 查看");
+            showMsg("发生了一个异常，请到 Console 查看");
         });
 };
 
@@ -53,3 +46,14 @@ clipboard.on('error', function (e) {
         tips: 3
     });
 });
+
+layui.use('form', function () {
+    var form = layui.form;
+});
+
+function showMsg(msg) {
+    layui.use('layer', function () {
+        var layermsg = layui.layer;
+        layermsg.msg(msg);
+    });
+}

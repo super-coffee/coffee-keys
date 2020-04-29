@@ -20,8 +20,8 @@ cursor = db.cursor()
 
 
 def get_u_uuid(mail_addr):
-    """传入邮箱，返回 UUID"""
-    return uuid.uuid5(uuid.NAMESPACE_DNS, mail_addr)
+    """传入邮箱，返回 UUID (str)"""
+    return str(uuid.uuid5(uuid.NAMESPACE_DNS, mail_addr))
 
 
 def get_u_date():
@@ -36,6 +36,8 @@ def check_password(u_password, d_password):
     :param d_password: 数据库中的密码
     :return: Boolean
     """
+    print(u_password)
+    print(d_password)
     return bcrypt.checkpw(u_password.encode(), d_password.encode())
 
 
@@ -46,17 +48,28 @@ def encrypt_password(original_password):
     return hashed_password
 
 
+def reconnect():
+    """重新连接数据库"""
+    try:
+        db.ping(reconnect=True)
+        return True, 'reconnected'
+    except Exception as e:
+        return False, e
+
+
 def add_new(u_uuid, u_name, u_mail, u_password, u_pubkey, u_date):
     """新增数据"""
+    db.ping(reconnect=True)
     sql = f"""INSERT INTO `{settings.Database.table}` (`uuid`, `name`, `mail`, `password`, `pubkey`, `date`)
-    VALUES ('{u_uuid}', '{u_name}', '{u_mail}', '{pymysql.escape_string(base64.b64encode(u_password).decode())}',
-            '{u_pubkey}', '{u_date}')"""
+    VALUES (%s, %s, %s, %s, %s, %s)"""
     try:
         if is_exist(u_mail):
             m = 'Data has already exists'
             print(m)
             return False, m
-        cursor.execute(sql)
+        u_password = base64.b64encode(u_password).decode()
+        cursor.execute(sql, (u_uuid, u_name, u_mail,
+                             u_password, u_pubkey, u_date))
         # 提交到数据库执行
         db.commit()
         m = 'Added'
@@ -72,8 +85,9 @@ def add_new(u_uuid, u_name, u_mail, u_password, u_pubkey, u_date):
 def is_exist(u_mail):
     """
     根据邮箱查询，检查是否存在；
-    False 是不重复
+    False 是不存在
     """
+    db.ping(reconnect=True)
     sql = f"""SELECT * FROM `{settings.Database.table}` WHERE mail = %s"""
     try:
         cursor.execute(sql, u_mail)
@@ -87,6 +101,7 @@ def is_exist(u_mail):
 
 def find(u_mail):
     """根据邮箱查询，不返回 password 字段"""
+    db.ping(reconnect=True)
     sql = f"""SELECT name, mail, pubkey, date FROM `{settings.Database.table}` WHERE mail = %s"""
     try:
         cursor.execute(sql, u_mail)
@@ -107,12 +122,12 @@ def find(u_mail):
 
 def query_password(u_mail):
     """根据邮箱查询 password 字段"""
+    db.ping(reconnect=True)
     sql = f"""SELECT password FROM `{settings.Database.table}` WHERE mail = %s"""
     try:
         cursor.execute(sql, u_mail)
         # 获取所有记录列表
         results = cursor.fetchall()
-        print(results[0][0])
         return True, results[0][0]
     except Exception as e:
         print(repr(e))
@@ -121,10 +136,10 @@ def query_password(u_mail):
 
 def find_ID(u_mail):
     """根据邮箱查询 id 字段"""
-    sql = """SELECT id FROM `{table}` WHERE mail = '{u_mail}'""".format(
-        table=settings.Database.table, u_mail=u_mail)
+    db.ping(reconnect=True)
+    sql = f"""SELECT id FROM `{settings.Database.table}` WHERE mail = %s"""
     try:
-        cursor.execute(sql)
+        cursor.execute(sql, u_mail)
         result = cursor.fetchall()
         return True, result[0][0]
     except Exception as e:
@@ -132,24 +147,26 @@ def find_ID(u_mail):
         return False, errors.hack_warning
 
 
-def update(u_uuid, u_name, u_mail, u_password, u_pubkey, u_date, ID):
-    """根据id字段更新数据库"""
+def update(u_uuid, u_name, u_mail, u_password, u_pubkey, u_date, u_id):
+    """根据 id 字段更新数据库"""
+    db.ping(reconnect=True)
+    sql = f"""UPDATE `{settings.Database.table}` SET uuid=%s, name=%s, mail=%s,
+            password=%s, pubkey=%s, date=%s WHERE id={u_id}"""
     try:
-        cursor.execute("""UPDATE `{table}` SET uuid='{u_uuid}', name='{u_name}', mail='{u_mail}',
-            password='{u_password}', pubkey='{u_pubkey}', date='{u_date}' WHERE id='{id}'""".format(
-            table=settings.Database.table, u_uuid=u_uuid, u_name=u_name, u_mail=u_mail,
-            u_password=pymysql.escape_string(base64.b64encode(u_password).decode()), u_pubkey=u_pubkey, u_date=u_date, id=ID))
+        u_password = base64.b64encode(u_password).decode()
+        cursor.execute(sql, (u_uuid, u_name, u_mail,
+                             u_password, u_pubkey, u_date))
         db.commit()
-        return True
-    except:
-        m = 'Error: unable to update data'
+        return True, 'ok'
+    except Exception as e:
         db.rollback()
-        print(m)
-        return False, m
+        print(e)
+        return False, repr(e)
 
 
 def delete(ID):
-    """根据id字段删除记录"""
+    """根据 id 字段删除记录"""
+    db.ping(reconnect=True)
     sql = """DELETE FROM `{table}` WHERE id = {id}""".format(
         table=settings.Database.table, id=ID)
     try:
@@ -157,28 +174,27 @@ def delete(ID):
         cursor.execute(sql)
         db.commit()
         return True
-    except:
-        m = 'Error: unable to delete data'
+    except Exception as e:
         db.rollback()
-        print(m)
-        return False, m
+        return False, repr(e)
 
 
 def confirm_authority(u_mail, u_password):
-    """根据mail字段确认操作权限"""
+    """根据 mail 字段确认操作权限"""
+    db.ping(reconnect=True)
     try:
         status, d_password = query_password(u_mail)
         if status and check_password(u_password, d_password):
-            return True
+            return True, None
         else:
-            return False
-    except:
-        m = 'Error: unable to confirm authority'
-        return False, m
+            return False, 'no permission'
+    except Exception as e:
+        return False, repr(e)
 
 
 def reformat_id():
     """重新排列 id 列"""
+    db.ping(reconnect=True)
     try:
         cursor.execute("ALTER TABLE `{table}` DROP `id`;".format(
             table=settings.Database.table))
@@ -194,4 +210,4 @@ def reformat_id():
 
 
 if __name__ == "__main__":
-    print(find('charlieyu4994@outlook.com'))
+    _, msg = reformat_id()
