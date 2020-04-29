@@ -1,15 +1,32 @@
 import json
 import base64
 
-from flask import Flask, redirect, render_template, request
+from flask import Flask, redirect, render_template, request, session
+from flask_wtf import csrf
+from flask_wtf.csrf import generate_csrf, CSRFProtect
 
 import database
 import errors
 import recaptcha
 import settings
 
-app = Flask(__name__)
 
+
+app = Flask(__name__)
+csrf = CSRFProtect(app)
+# 这个key务必自行修改！
+app.secret_key = "jiliguala%%#%^&&"
+@csrf.error_handler
+def csrf_error(reason):
+    return render_template('error.html', code='400 CSRF Error', error=reason), 400
+
+@app.after_request
+def after_request(response):
+    # 调用函数生成csrf token
+    csrf_token = generate_csrf()
+    # 设置cookie传给前端
+    response.set_cookie('csrf_token', csrf_token)
+    return response
 
 @app.route('/api/is_exist', methods=['GET'])
 def is_exist():
@@ -138,6 +155,16 @@ def update():
         return redirect(f'/updateInfo.html?msg=reCAPTCHA 令牌未找到，停止你的黑客行为！', 302)
 
 
+@app.route('/api/verifyAuthenticate', methods=['GET'])
+def verifyAuthenticate():
+    username = session['username']
+    if username != "":
+        return {'status': True, 'data': username}
+    else:
+        return errors.permission_forbidden
+    pass
+
+
 @app.route('/api/deleteInfo', methods=['DELETE'])
 def deleteInfo():
     if 'g-recaptcha-response' in request.args:
@@ -185,6 +212,26 @@ def ui_common():
 @app.route('/api/Ui/index')
 def ui_index():
     return json.dumps(settings.Ui.index)
+
+
+# 登录控制
+@app.before_request
+def before(*args, **kwargs):
+    # allow to visit without login
+    allow_visit = [
+        '/api/newKey',
+        '/api/Ui/index',
+        '/api/Ui/common',
+        '/api/recaptcha/getSiteKey',
+        '/api/verifyPassword',
+        '/api/searchKey'
+    ]
+    if request.path in allow_visit:
+        return None
+    user = session.get('username')
+    if user:
+        return None
+    return errors.permission_forbidden
 
 
 if __name__ == "__main__":

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+
+<head>
+    <meta charset="utf-8">
+    <title>{{ code }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=0" />
+    <link href="/static/error/error.css" rel="stylesheet">
+</head>
+
+<body>
+    <canvas></canvas>
+    <section id="about" class="animated bounce-in">
+        <div class="bg-align">
+            <h1>{{ code }}</h1>
+            <p>{{ error }}</p>
+        </div>
+    </section>
+    <script src="/static/error/evanyou.js"></script>
+</body>
+
+</html>
