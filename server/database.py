@@ -102,7 +102,7 @@ def is_exist(u_mail):
 def find(u_mail):
     """根据邮箱查询，不返回 password 字段"""
     db.ping(reconnect=True)
-    sql = f"""SELECT name, mail, pubkey, date FROM `{settings.Database.table}` WHERE mail = %s"""
+    sql = f"""SELECT name, mail, pubkey, date, password FROM `{settings.Database.table}` WHERE mail = %s"""
     try:
         cursor.execute(sql, u_mail)
         # 获取所有记录列表
@@ -112,23 +112,10 @@ def find(u_mail):
             'name': row[0],
             'mail': row[1],
             'pubkey': row[2],
-            'date': str(row[3])
+            'date': str(row[3]),
+            'password': row[4]
         }
         return True, data
-    except Exception as e:
-        print(repr(e))
-        return False, errors.hack_warning
-
-
-def query_password(u_mail):
-    """根据邮箱查询 password 字段"""
-    db.ping(reconnect=True)
-    sql = f"""SELECT password FROM `{settings.Database.table}` WHERE mail = %s"""
-    try:
-        cursor.execute(sql, u_mail)
-        # 获取所有记录列表
-        results = cursor.fetchall()
-        return True, results[0][0]
     except Exception as e:
         print(repr(e))
         return False, errors.hack_warning
@@ -179,19 +166,6 @@ def delete(ID):
         return False, repr(e)
 
 
-def confirm_authority(u_mail, u_password):
-    """根据 mail 字段确认操作权限"""
-    db.ping(reconnect=True)
-    try:
-        status, d_password = query_password(u_mail)
-        if status and check_password(u_password, d_password):
-            return True, None
-        else:
-            return False, 'no permission'
-    except Exception as e:
-        return False, repr(e)
-
-
 def reformat_id(u_id):
     """重新排列 id 列"""
     db.ping(reconnect=True)
@@ -213,4 +187,4 @@ def reformat_id(u_id):
 
 
 if __name__ == "__main__":
-    _, msg = reformat_id()
+    pass
