@@ -66,7 +66,8 @@ def verifyPassword():
             u_password = request.args['password']
             if database.is_exist(u_mail):
                 d_status, data = database.find(u_mail)
-                d_password = data['password'], u_username = data['name']
+                d_password = data['password']
+                u_username = data['name']
                 if d_status:
                     if database.check_password(u_password, base64.b64decode(d_password).decode()):
                         return {'status': True, 'data': u_username}
