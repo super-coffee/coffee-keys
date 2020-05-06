@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <title>登录</title>
+    <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i">
+    <link rel="stylesheet" href="assets/fonts/fontawesome-all.min.css">
+    <link href="/css/toastr.css" rel="stylesheet"/>
+</head>
+
+<body class="bg-gradient-primary">
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-9 col-lg-12 col-xl-10">
+            <div class="card shadow-lg o-hidden border-0 my-5">
+                <div class="card-body p-0">
+                    <div class="row">
+                        <div class="col-lg-6 d-none d-lg-flex">
+                            <div class="flex-grow-1 bg-login-image"
+                                 style="background-image: url(&quot;assets/img/bg.jpg&quot;);"></div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="p-5">
+                                <div class="text-center">
+                                    <h4 class="text-dark mb-4">登录</h4>
+                                </div>
+                                <form class="user" id="login" onsubmit="return false" action="##" method="post">
+                                    <div class="form-group"><input class="form-control form-control-user" type="email"
+                                                                   id="exampleInputEmail" aria-describedby="emailHelp"
+                                                                   placeholder="电子邮箱" name="mail"></div>
+                                    <div class="form-group"><input class="form-control form-control-user"
+                                                                   type="password" id="exampleInputPassword"
+                                                                   placeholder="密码" name="password"></div>
+                                    <div class="form-group">
+                                        <div class="g-recaptcha" id="recaptchainVerifyPassword"
+                                             style="margin-left: 30px;">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <div class="custom-control custom-checkbox small">
+                                            <div class="form-check"><input class="form-check-input custom-control-input"
+                                                                           type="checkbox" id="formCheck-1"><label
+                                                    class="form-check-label custom-control-label"
+                                                    for="formCheck-1">记住我</label></div>
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-primary btn-block text-white btn-user" onclick="login()">
+                                        Login
+                                    </button>
+                                    <hr>
+                                    <div class="col">
+
+                                        <div class="text-center"><a class="small"
+                                                                    href="register.html">注册账号</a></div>
+                                        <div class="text-center"></div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="text-center"><a class="small" href="login.html">忘记密码</a></div>
+                                    </div>
+                                    <hr>
+                                    <p class="text-center copyright">Super-Coffee © 2020</p>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="./layui/layui.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="assets/js/jquery.min.js"></script>
+
+<script src="assets/bootstrap/js/bootstrap.min.js"></script>
+<script src="/js/toastr.min.js"></script>
+<script>
+    toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": true,
+        "positionClass": "toast-top-center",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "300",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+    }
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.js"></script>
+<script src="assets/js/theme.js"></script>
+<script src="./js/recaptcha.js"></script>
+<script>
+    function recaptchainVerifyPassword() {
+        axios
+            .get(`/api/recaptcha/getSiteKey`)
+            .then(response => {
+                opt_widget_id = grecaptcha.render(
+                    "recaptchainVerifyPassword",
+                    {"sitekey": response.data}
+                );
+                grecaptcha.reset(opt_widget_id);
+            })
+            .catch(error => {
+                console.log(error);
+            });
+    }
+
+    function getCookie(name) {
+        var arr, reg = new RegExp("(^| )" + name + "=([^;]*)(;|$)");
+        if (arr = document.cookie.match(reg))
+            return unescape(arr[2]);
+        else
+            return null;
+    }
+
+    function login() {
+        $.ajax({
+            type: "POST",
+            dataType: "json",
+            url: "/api/verifyPassword",//url
+            data: $('#login').serialize(),
+            headers: {"X-CSRFToken": getCookie("csrf_token")},
+            success: function (result) {
+                if (result.status == false) {
+                    toastr.error("登录错误: " + result.data);
+                } else {
+                    toastr.success("欢迎你: " + result.data);
+                    setTimeout("location.href='/home.html';", 3000);
+                }
+                ;
+            },
+            error: function () {
+                toastr.error("后端服务器错误！");
+            }
+        });
+    }
+</script>
+<script src="https://www.recaptcha.net/recaptcha/api.js?onload=recaptchainVerifyPassword&render=explicit" async
+        defer></script>
+</body>
+
+</html>

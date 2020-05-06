@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <title>Register - Brand</title>
+    <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i">
+    <link rel="stylesheet" href="assets/fonts/fontawesome-all.min.css">
+    <link href="/css/toastr.css" rel="stylesheet"/>
+</head>
+
+<body class="bg-gradient-primary">
+<div class="container">
+    <div class="card shadow-lg o-hidden border-0 my-5">
+        <div class="card-body p-0">
+            <div class="row">
+                <div class="col-lg-5 d-none d-lg-flex">
+                    <div class="flex-grow-1 bg-register-image"
+                         style="background-image: url(&quot;assets/img/bg.jpg&quot;);"></div>
+                </div>
+                <div class="col-lg-7">
+                    <div class="p-5">
+                        <div class="text-center">
+                            <h4 class="text-dark mb-4">注册</h4>
+                        </div>
+                        <form class="user" id="form_register" onsubmit="return false" action="##" method="post">
+                            <div class="form-group"><input class="form-control form-control-user" type="text"
+                                                           id="name" aria-describedby="emailHelp"
+                                                           placeholder="用户名" name="name"></div>
+                            <div class="form-group"><input class="form-control form-control-user" type="email"
+                                                           id="email" aria-describedby="emailHelp"
+                                                           placeholder="电子邮箱" name="mail"></div>
+                            <div class="form-group row">
+                                <div class="col-sm-6 mb-3 mb-sm-0"><input class="form-control form-control-user"
+                                                                          type="password" id="password1"
+                                                                          placeholder="密码" name="password"></div>
+                                <div class="col-sm-6"><input class="form-control form-control-user" type="password"
+                                                             id="password2"
+                                                             placeholder="重复密码" name="repeat-password"></div>
+
+                            </div>
+
+                            <div class="form-group"><textarea id="key" name="pubkey" class="form-control" placeholder="密匙"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <div class="g-recaptcha" id="recaptchainVerifyPassword"
+                                     style="margin-left: 30px;">
+                                </div>
+                            </div>
+                            <button class="btn btn-primary btn-block text-white btn-user" onclick="register()">注册账号</button>
+                            <hr>
+                            <a class="btn btn-primary btn-block text-white btn-google btn-user" role="button"><i
+                                    class="fab fa-google"></i>&nbsp; Register with Google</a><a
+                                class="btn btn-primary btn-block text-white btn-facebook btn-user" role="button"><i
+                                class="fab fa-facebook-f"></i>&nbsp; Register with Facebook</a>
+                            <hr>
+                        </form>
+                        <div class="text-center"><a class="small" href="forgot-password.html">Forgot Password?</a></div>
+                        <div class="text-center"><a class="small" href="login.html">Already have an account? Login!</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="assets/js/jquery.min.js"></script>
+<script src="assets/bootstrap/js/bootstrap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.js"></script>
+<script src="assets/js/theme.js"></script>
+<script src="./js/recaptcha.js"></script>
+<script src="/js/toastr.min.js"></script>
+<script>
+    toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": true,
+        "positionClass": "toast-top-center",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "300",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+    }
+</script>
+<script>
+    function recaptchainVerifyPassword() {
+        axios
+            .get(`/api/recaptcha/getSiteKey`)
+            .then(response => {
+                opt_widget_id = grecaptcha.render(
+                    "recaptchainVerifyPassword",
+                    {"sitekey": response.data}
+                );
+                grecaptcha.reset(opt_widget_id);
+            })
+            .catch(error => {
+                console.log(error);
+            });
+    }
+
+    function getCookie(name) {
+        var arr, reg = new RegExp("(^| )" + name + "=([^;]*)(;|$)");
+        if (arr = document.cookie.match(reg))
+            return unescape(arr[2]);
+        else
+            return null;
+    }
+
+    function register() {
+        if ($("#name").val()=="" || $("#email").val() == ""||$("#password1").val() == ""||$("#password2").val() == "" || $("#key").val() == ""){
+            toastr.error("表格未填写完整！");
+            return;
+        }
+        if ($('#password1').val() !== $('#password2').val()) {
+            toastr.error("两次密码输入不一致!");
+            return;
+
+        }
+
+        $.ajax({
+            type: "POST",
+            dataType: "json",
+            url: "/api/newKey",//url
+            data: $('#form_register').serialize(),
+            headers: {"X-CSRFToken": getCookie("csrf_token")},
+            success: function (result) {
+                if (result.status == false) {
+                    toastr.error("注册错误: " + result.data);
+                } else {
+                    toastr.success("注册成功,欢迎你: " + result.data);
+                    setTimeout("location.href='/login.html';", 3000);
+                }
+                ;
+            },
+            error: function () {
+                toastr.error("后端服务器错误！");
+            }
+        });
+    }
+</script>
+<script src="https://www.recaptcha.net/recaptcha/api.js?onload=recaptchainVerifyPassword&render=explicit" async
+        defer></script>
+</body>
+
+</html>

@@ -78,8 +78,11 @@ layui.use('form', function () {
             var u_mail = data["mail"];
             var u_password = data["password"];
             var g = data["g-recaptcha-response"];
+            data.append('csrf_token',getCookie("csrf_token"));
             axios
-                .get(`/api/verifyPassword?mail=${u_mail}&password=${u_password}&g-recaptcha-response=${g}`)
+                .post(`/api/verifyPassword`,data,{
+                        headers: {'X-CSRFToken':getCookie("csrf_token")}
+                    })
                 .then(response => {
                     if (response.data.status) {
                         // 显示修改的信息框

@@ -10,9 +10,6 @@ function grecaptcha() {
         })
         .catch(error => {
             console.log(error);
-            layui.use('layer', function () {
-                var layer = layui.layer;
-                layer.msg("发生了一个异常，请到 Console 查看");
-            });
+
         });
 };

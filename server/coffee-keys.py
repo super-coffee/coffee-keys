@@ -2,7 +2,6 @@ import json
 import base64
 
 from flask import Flask, redirect, render_template, request, session
-from flask_wtf import csrf
 from flask_wtf.csrf import generate_csrf, CSRFProtect
 
 import database
@@ -10,15 +9,16 @@ import errors
 import recaptcha
 import settings
 
-
-
 app = Flask(__name__)
 csrf = CSRFProtect(app)
 # 这个key务必自行修改！
 app.secret_key = "jiliguala%%#%^&&"
+
+
 @csrf.error_handler
 def csrf_error(reason):
     return render_template('error.html', code='400 CSRF Error', error=reason), 400
+
 
 @app.after_request
 def after_request(response):
@@ -27,6 +27,7 @@ def after_request(response):
     # 设置cookie传给前端
     response.set_cookie('csrf_token', csrf_token)
     return response
+
 
 @app.route('/api/is_exist', methods=['GET'])
 def is_exist():
@@ -47,7 +48,7 @@ def addNew():
         u_mail = request.form['mail']
         password = request.form['password'] if request.form['password'] == request.form['repeat-password'] else False
         if not password:
-            return redirect(f'/newKey.html?msg=输入的密码不相同', 302)
+            return {'status': False, 'data': '输入的密码不相同'}
         u_password = database.encrypt_password(
             request.form['password'].encode())  # BASE64 交给 database.py
         u_pubkey = request.form['pubkey']
@@ -56,11 +57,11 @@ def addNew():
         status, msg = database.add_new(
             u_uuid, u_name, u_mail, u_password, u_pubkey, u_date)
         if status:
-            return redirect(f'/searchKey.html?mail={u_mail}&msg=添加成功', 302)
+            return {'status': True, 'data': u_name}
         else:
-            return redirect(f'/searchKey.html?mail={u_mail}&msg={msg}', 302)
+            return {'status': False, 'data': msg}
     else:
-        return redirect(f'/newKey.html?msg=reCAPTCHA 令牌无效', 302)
+        return {'status': False, 'data': '令牌无效'}
 
 
 @app.route('/api/searchKey', methods=['GET'])
@@ -74,18 +75,20 @@ def searchKey():
         return {'status': exist, 'data': '信息不存在'}
 
 
-@app.route('/api/verifyPassword', methods=['GET'])
+@app.route('/api/verifyPassword', methods=['POST'])
 def verifyPassword():
-    if 'g-recaptcha-response' in request.args:
-        g_recaptcha_response = request.args['g-recaptcha-response']
+    if 'g-recaptcha-response' in request.form:
+        g_recaptcha_response = request.form['g-recaptcha-response']
         if recaptcha.verify(g_recaptcha_response):
-            u_mail = request.args['mail']
-            u_password = request.args['password']
+            u_mail = request.form['mail']
+            u_password = request.form['password']
             if database.is_exist(u_mail):
-                d_status, d_password = database.query_password(u_mail)
+                d_status, data = database.find(u_mail)
+                d_password = data['password']
+                u_username = data['name']
                 if d_status:
                     if database.check_password(u_password, base64.b64decode(d_password).decode()):
-                        return {'status': True, 'data': '认证成功'}
+                        return {'status': True, 'data': u_username}
                     else:
                         return {'status': False, 'data': '认证失败'}
                 else:
@@ -162,7 +165,6 @@ def verifyAuthenticate():
         return {'status': True, 'data': username}
     else:
         return errors.permission_forbidden
-    pass
 
 
 @app.route('/api/deleteInfo', methods=['DELETE'])
@@ -181,10 +183,9 @@ def deleteInfo():
                             database.delete(u_id)
                             status, msg = database.reformat_id()
                             if status:
-                                return {'status': True, 'data': '重新排序成功'}
+                                return {'status': True, 'data': '删除成功，重新排序成功'}
                             else:
-                                return {'status': True, 'data': msg}
-                            return {'status': True, 'data': '删除成功'}
+                                return {'status': True, 'data': f'删除成功，重新排序失败：{msg}'}
                         else:
                             return {'status': False, 'data': '服务器错误'}
                     else:
@@ -192,11 +193,16 @@ def deleteInfo():
                 else:
                     return {'status': False, 'data': '服务器错误'}
             else:
-                {'status': False, 'data': '邮箱不存在'}
+                return {'status': False, 'data': '邮箱不存在'}
         else:
             return errors.recaptcha_verify_failed
     else:
         return errors.recaptcha_not_found
+
+@app.route('/api/logout', methods=['GET'])
+def logout():
+    session.clear()
+    return redirect("/", code=302)
 
 
 @app.route('/api/recaptcha/getSiteKey')
