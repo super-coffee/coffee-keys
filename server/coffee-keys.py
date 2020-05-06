@@ -64,12 +64,13 @@ def addNew():
         return {'status': False, 'data': '令牌无效'}
 
 
-@app.route('/api/searchKey', methods=['GET'])
+@app.route('/api/searchKey', methods=['POST'])
 def searchKey():
-    u_mail = request.args['mail']
+    u_mail = request.form['mail']
     exist = database.is_exist(u_mail)
     if exist:
         status, data = database.find(u_mail)
+        del(data['password'])
         return {'status': status, 'data': data}
     else:
         return {'status': exist, 'data': '信息不存在'}
@@ -198,6 +199,7 @@ def deleteInfo():
             return errors.recaptcha_verify_failed
     else:
         return errors.recaptcha_not_found
+
 
 @app.route('/api/logout', methods=['GET'])
 def logout():

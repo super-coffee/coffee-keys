@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <title>查询密匙</title>
+    <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i">
+    <link rel="stylesheet" href="assets/fonts/fontawesome-all.min.css">
+    <link href="/css/toastr.css" rel="stylesheet"/>
+</head>
+
+<body class="bg-gradient-primary">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-9 col-lg-12 col-xl-10">
+                <div class="card shadow-lg o-hidden border-0 my-5">
+                    <div class="card-body p-0">
+                        <div class="row">
+                            <div class="col-lg-5 d-none d-lg-flex">
+                                <div class="flex-grow-1 bg-register-image"
+                                     style="background-image: url(&quot;assets/img/bg.jpg&quot;);"></div>
+                            </div>
+                            <div class="col-lg-7">
+                                <div class="p-5">
+                                    <div class="text-center">
+                                        <h4 class="text-dark mb-4">查询密匙</h4>
+                                    </div>
+                                    <form id="search" class="mr-auto ml-md-3 my-2 my-md-0 mw-100" id="search" onsubmit="return false" action="##" method="post">
+                                        <div class="input-group"><input name="mail" class="bg-light form-control border-0 small" type="email" placeholder="持有者邮箱">
+                                            <div class="input-group-append"><button id="b_search" onclick="search()" class="btn btn-primary py-0" type="button"><i class="fas fa-search"></i></button></div>
+                                        </div>
+                                    </form>
+                                    <div class="m-3">
+                                    <textarea class="form-control" placeholder="密匙" readonly="readonly" rows="10" id="key"></textarea></div>
+                                    <hr>
+                                    <div class="text-center"><p class="small text-left ml-2 mr-2">本页面用于使用所有者邮箱查询公匙！</p></div>
+                                    <div class="text-center"><a class="small" href="/">回到首页</a></div>
+                                    <hr>
+                                    <p class="text-center copyright">Super-Coffee © 2020</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="assets/js/jquery.min.js"></script>
+
+    <script src="assets/bootstrap/js/bootstrap.min.js"></script>
+    <script src="/js/toastr.min.js"></script>
+    <script>
+        toastr.options = {
+            "closeButton": true,
+            "debug": false,
+            "newestOnTop": false,
+            "progressBar": true,
+            "positionClass": "toast-top-center",
+            "preventDuplicates": false,
+            "onclick": null,
+            "showDuration": "300",
+            "hideDuration": "1000",
+            "timeOut": "5000",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.js"></script>
+    <script>
+        $('#key').hide()
+        function getCookie(name) {
+            var arr, reg = new RegExp("(^| )" + name + "=([^;]*)(;|$)");
+            if (arr = document.cookie.match(reg))
+                return unescape(arr[2]);
+            else
+                return null;
+        }
+
+        function search() {
+            document.getElementById("b_search").disabled=true;
+            $.ajax({
+                type: "POST",
+                dataType: "json",
+                url: "/api/searchKey",//url
+                data: $('#search').serialize(),
+                headers: {"X-CSRFToken": getCookie("csrf_token")},
+                success: function (result) {
+                    console.log(result.status)
+                    if (result.status == false) {
+                        toastr.error("错误: " + result.data);
+                    } else {
+                        toastr.success("查询成功");
+                        var key = $('#key');
+                        key.val(result.data.pubkey);
+                        key.show();
+                        console.log(result.data);
+
+                    }
+                    document.getElementById("b_search").disabled=false;
+                },
+                error: function () {
+                    toastr.error("后端服务器错误！");
+                    document.getElementById("b_search").disabled=false;
+                }
+
+            });
+
+        }
+    </script>
+</body>
+
+</html>
