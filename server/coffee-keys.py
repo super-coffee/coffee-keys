@@ -2,31 +2,54 @@ import json
 import base64
 
 from flask import Flask, redirect, render_template, request, session
-from flask_wtf.csrf import generate_csrf, CSRFProtect
+from flask_jwt_extended import (JWTManager, jwt_required, create_refresh_token, 
+create_access_token, get_jwt_claims)
 
 import database
 import errors
 import recaptcha
 import settings
+import datetime
 
 app = Flask(__name__)
-csrf = CSRFProtect(app)
-# 这个key务必自行修改！
-app.secret_key = "jiliguala%%#%^&&"
+app.config['JWT_SECRET_KEY'] = settings.jwt.secret_key
+app.config['JWT_HEADER_NAME'] = 'JWT_Token'
+app.config['JWT_REFRESH_TOKEN_EXPIRES'] = datetime.timedelta(hours=12)
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(minutes=5)
+JWT = JWTManager(app)
 
 
-@csrf.error_handler
-def csrf_error(reason):
-    return render_template('error.html', code='400 CSRF Error', error=reason), 400
-
-
-@app.after_request
-def after_request(response):
-    # 调用函数生成csrf token
-    csrf_token = generate_csrf()
-    # 设置cookie传给前端
-    response.set_cookie('csrf_token', csrf_token)
-    return response
+@app.route('/api/login', methods=['POST'])
+def login():
+    if 'g-recaptcha-response' in request.form:
+        g_recaptcha_response = request.form['g-recaptcha-response']
+        if recaptcha.verify(g_recaptcha_response):
+            u_mail = request.form['mail']
+            u_password = request.form['password']
+            if database.is_exist(u_mail):
+                d_status, data = database.find(u_mail)
+                d_password, u_username = data['password'], data['name']
+                if d_status:
+                    if database.check_password(u_password, base64.b64decode(d_password).decode()):
+                        JWT_access_token = create_access_token(identity=u_username, user_claims={
+                            'user_type': data['type']
+                        })
+                        JWT_refresh_token = create_refresh_token(identity=u_username)
+                        tokens = json.dumps({
+                            'access_token': JWT_access_token,
+                            'refresh_tokrn': JWT_refresh_token
+                        })
+                        return {'status': True, 'data': u_username, 'tokens': tokens}
+                    else:
+                        return {'status': False, 'data': '认证失败'}
+                else:
+                    return {'status': False, 'data': '服务器错误'}
+            else:
+                return {'status': False, 'data': '邮箱不存在'}
+        else:
+            return errors.recaptcha_verify_failed
+    else:
+        return errors.recaptcha_not_found
 
 
 @app.route('/api/is_exist', methods=['GET'])
@@ -102,6 +125,7 @@ def verifyPassword():
 
 
 @app.route('/api/updateInfo', methods=['POST'])
+@jwt_required
 def update():
     if 'g-recaptcha-response' in request.form:
         g_recaptcha_response = request.form['g-recaptcha-response']
@@ -158,16 +182,8 @@ def update():
         return redirect(f'/updateInfo.html?msg=reCAPTCHA 令牌未找到，停止你的黑客行为！', 302)
 
 
-@app.route('/api/verifyAuthenticate', methods=['GET'])
-def verifyAuthenticate():
-    username = session['username']
-    if username != "":
-        return {'status': True, 'data': username}
-    else:
-        return errors.permission_forbidden
-
-
 @app.route('/api/deleteInfo', methods=['DELETE'])
+@jwt_required
 def deleteInfo():
     if 'g-recaptcha-response' in request.args:
         g_recaptcha_response = request.args['g-recaptcha-response']
@@ -218,26 +234,6 @@ def ui_common():
 @app.route('/api/Ui/index')
 def ui_index():
     return json.dumps(settings.Ui.index)
-
-
-# 登录控制
-@app.before_request
-def before(*args, **kwargs):
-    # allow to visit without login
-    allow_visit = [
-        '/api/newKey',
-        '/api/Ui/index',
-        '/api/Ui/common',
-        '/api/recaptcha/getSiteKey',
-        '/api/verifyPassword',
-        '/api/searchKey'
-    ]
-    if request.path in allow_visit:
-        return None
-    user = session.get('username')
-    if user:
-        return None
-    return errors.permission_forbidden
 
 
 if __name__ == "__main__":

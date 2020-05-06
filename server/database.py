@@ -36,8 +36,6 @@ def check_password(u_password, d_password):
     :param d_password: 数据库中的密码
     :return: Boolean
     """
-    print(u_password)
-    print(d_password)
     return bcrypt.checkpw(u_password.encode(), d_password.encode())
 
 
@@ -102,7 +100,7 @@ def is_exist(u_mail):
 def find(u_mail):
     """根据邮箱查询，不返回 password 字段"""
     db.ping(reconnect=True)
-    sql = f"""SELECT name, mail, pubkey, date, password FROM `{settings.Database.table}` WHERE mail = %s"""
+    sql = f"""SELECT name, mail, pubkey, date, password, type FROM `{settings.Database.table}` WHERE mail = %s"""
     try:
         cursor.execute(sql, u_mail)
         # 获取所有记录列表
@@ -113,7 +111,8 @@ def find(u_mail):
             'mail': row[1],
             'pubkey': row[2],
             'date': str(row[3]),
-            'password': row[4]
+            'password': row[4],
+            'type': row[5]
         }
         return True, data
     except Exception as e:

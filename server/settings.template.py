@@ -36,3 +36,7 @@ class Ui:
 class reCAPTCHA:
     siteKey = 'SECRET'
     serverKey = 'SECRET'
+
+
+class jwt:
+    secret_key = 'SECRET'
