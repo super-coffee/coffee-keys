@@ -64,7 +64,7 @@ def add_new(u_uuid, u_name, u_mail, u_password, u_pubkey, u_date):
     VALUES (%s, %s, %s, %s, %s, %s)"""
     try:
         if is_exist(u_mail):
-            m = 'Data has already exists'
+            m = '此邮箱已经存在'
             print(m)
             return False, m
         u_password = base64.b64encode(u_password).decode()
