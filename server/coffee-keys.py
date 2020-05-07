@@ -31,7 +31,7 @@ def after_request(response):
 
 @app.route('/api/is_exist', methods=['GET'])
 def is_exist():
-    status = database.is_exist(request.args['mail'])
+    status, _ = database.is_exist(request.args['mail'])
     return {'status': status}
 
 
@@ -67,7 +67,7 @@ def addNew():
 @app.route('/api/searchKey', methods=['POST'])
 def searchKey():
     u_mail = request.form['mail']
-    exist = database.is_exist(u_mail)
+    exist, _ = database.is_exist(u_mail)
     if exist:
         status, data = database.find(u_mail)
         del(data['password'])
@@ -83,7 +83,7 @@ def verifyPassword():
         if recaptcha.verify(g_recaptcha_response):
             u_mail = request.form['mail']
             u_password = request.form['password']
-            if database.is_exist(u_mail):
+            if database.is_exist(u_mail)[1]:
                 d_status, data = database.find(u_mail)
                 d_password = data['password']
                 u_username = data['name']
@@ -119,7 +119,7 @@ def update():
                 password = u_password if u_password == u_repeat_password else False
                 if not password:
                     return redirect(f'/updateInfo.html?msg=输入的密码不相同', 302)
-                if database.is_exist(origin_mail):
+                if database.is_exist(origin_mail)[1]:
                     d_status, d_password = database.query_password(origin_mail)
                     if d_status:
                         if not database.check_password(origin_password,
@@ -143,7 +143,7 @@ def update():
             u_pubkey = request.form['pubkey']
             u_uuid = database.get_u_uuid(u_mail)
             u_date = database.get_u_date()
-            id_status, u_id = database.find_ID(origin_mail)
+            id_status, u_id = database.find_uid(origin_mail)
             if id_status:
                 status, msg = database.update(
                     u_uuid, u_name, u_mail, u_password, u_pubkey, u_date, u_id)
@@ -175,11 +175,11 @@ def deleteInfo():
         if recaptcha.verify(g_recaptcha_response):
             u_mail = request.args['mail']
             u_password = request.args['password']
-            if database.is_exist(u_mail):
+            if database.is_exist(u_mail)[1]:
                 d_status, d_password = database.query_password(u_mail)
                 if d_status:
                     if database.check_password(u_password, base64.b64decode(d_password).decode()):
-                        id_status, u_id = database.find_ID(u_mail)
+                        id_status, u_id = database.find_uid(u_mail)
                         if id_status:
                             database.delete(u_id)
                             status, msg = database.reformat_id()
