@@ -97,7 +97,12 @@
                     } else {
                         toastr.success("查询成功");
                         var key = $('#key');
-                        key.val(result.data.pubkey);
+                        var msg = "";
+                        var keys = result.data.pubkey;
+                        for(i in keys){
+                            msg +=  "====="+keys[i][1]+"=====\n"+keys[i][0] +"\n=============\n";
+                        }
+                        key.val(msg);
                         key.show();
                         console.log(result.data);
 

@@ -1,4 +1,4 @@
-#coding=utf-8
+# coding=utf-8
 import base64
 import datetime
 import time
@@ -56,7 +56,7 @@ def reconnect():
         return False, e
 
 
-def add_new(u_uuid, u_name, u_mail, u_password, u_pubkey, u_date):
+def addUser(u_uuid, u_name, u_mail, u_password, u_date):
     """新增数据"""
     db.ping(reconnect=True)
     try:
@@ -68,20 +68,13 @@ def add_new(u_uuid, u_name, u_mail, u_password, u_pubkey, u_date):
         u_password = base64.b64encode(u_password).decode()
         cursor.execute(f"SELECT id from `{settings.Database.user_table}` WHERE role = -1")
         result = cursor.fetchall()
-        if len(result) > 0:
-            p_id = result[0][0]
-            update(u_uuid, u_name, u_mail, u_password, u_pubkey, u_date, p_id)
-            cursor.execute(f"""UPDATE `{settings.Database.user_table}` 
-                                SET role=0 WHERE id=%s""", (p_id))
-        else:
-            cursor.execute(f"""INSERT INTO `{settings.Database.user_table}` (`uuid`, `name`, `mail`, `password`, `date`)
-                                VALUES (%s, %s, %s, %s, %s)""", (u_uuid, u_name, u_mail, u_password, u_date))
-            _, u_id = find_uid(u_mail)
-            cursor.execute(f"""INSERT INTO `{settings.Database.pubkey_table}` (`u_id`, `pubkey`)
-                                VALUES ({u_id}, %s)""", (u_pubkey))
+        cursor.execute(f"""INSERT INTO `{settings.Database.user_table}` (`uuid`, `name`, `mail`, `password`, `date`)
+                            VALUES (%s, %s, %s, %s, %s)""", (u_uuid, u_name, u_mail, u_password, u_date))
+        _, u_id = find_uid(u_mail)
+
         # 提交到数据库执行
         db.commit()
-        m = 'Added'
+        m = u_id
         print(m)
         return True, m
     except Exception as e:
@@ -106,7 +99,27 @@ def is_exist(u_mail):
         return True if status else False, results[0][0] if status else 0
     except Exception as e:
         print(repr(e))
-        return True
+        return False
+
+
+def findAllKey(u_mail):
+    """根据邮箱查询密匙，返回所有公钥"""
+    db.ping(reconnect=True)
+    try:
+        cursor.execute(f"""SELECT id FROM `{settings.Database.user_table}`
+                                WHERE mail = %s""", u_mail)
+        results = cursor.fetchall()
+        row = results[0]
+        cursor.execute(f"""SELECT pubkey,info FROM `{settings.Database.pubkey_table}`
+                                WHERE u_id = %s""", row[0])
+        results = cursor.fetchall()
+        data = {
+            'pubkey': results,
+        }
+        return True, data
+    except Exception as e:
+        print(repr(e))
+        return False, errors.hack_warning
 
 
 def find(u_mail):
@@ -114,7 +127,7 @@ def find(u_mail):
     db.ping(reconnect=True)
     try:
         cursor.execute(f"""SELECT id, name, mail, date, password FROM `{settings.Database.user_table}`
-                            WHERE mail = %s""", (u_mail))
+                            WHERE mail = %s""", u_mail)
         results = cursor.fetchall()
         row = results[0]
         u_id, name, mail, date, password = row

@@ -2,7 +2,7 @@ import json
 import base64
 
 from flask import Flask, redirect, render_template, request, session
-from flask_wtf.csrf import generate_csrf, CSRFProtect
+from flask_wtf.csrf import generate_csrf, CSRFProtect, CSRFError
 
 import database
 import errors
@@ -15,9 +15,11 @@ csrf = CSRFProtect(app)
 app.secret_key = "jiliguala%%#%^&&"
 
 
-@csrf.error_handler
+@app.errorhandler(CSRFError)
 def csrf_error(reason):
     return render_template('error.html', code='400 CSRF Error', error=reason), 400
+
+
 
 
 @app.after_request
@@ -25,6 +27,7 @@ def after_request(response):
     # 调用函数生成csrf token
     csrf_token = generate_csrf()
     # 设置cookie传给前端
+
     response.set_cookie('csrf_token', csrf_token)
     return response
 
@@ -54,8 +57,8 @@ def addNew():
         u_pubkey = request.form['pubkey']
         u_uuid = database.get_u_uuid(u_mail)
         u_date = database.get_u_date()
-        status, msg = database.add_new(
-            u_uuid, u_name, u_mail, u_password, u_pubkey, u_date)
+        status, msg = database.addUser(
+            u_uuid, u_name, u_mail, u_password, u_date)
         if status:
             return {'status': True, 'data': u_name}
         else:
@@ -69,8 +72,7 @@ def searchKey():
     u_mail = request.form['mail']
     exist, _ = database.is_exist(u_mail)
     if exist:
-        status, data = database.find(u_mail)
-        del(data['password'])
+        status, data = database.findAllKey(u_mail)
         return {'status': status, 'data': data}
     else:
         return {'status': exist, 'data': '信息不存在'}
@@ -83,7 +85,7 @@ def verifyPassword():
         if recaptcha.verify(g_recaptcha_response):
             u_mail = request.form['mail']
             u_password = request.form['password']
-            if database.is_exist(u_mail)[1]:
+            if database.is_exist(u_mail)[0]:
                 d_status, data = database.find(u_mail)
                 d_password = data['password']
                 u_username = data['name']
