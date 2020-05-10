@@ -1,4 +1,4 @@
-# coding=utf-8
+#coding=utf-8
 import base64
 import datetime
 import time
@@ -56,7 +56,7 @@ def reconnect():
         return False, e
 
 
-def addUser(u_uuid, u_name, u_mail, u_password, u_date):
+def add_new(u_uuid, u_name, u_mail, u_password, u_pubkey, u_date):
     """新增数据"""
     db.ping(reconnect=True)
     try:
@@ -68,13 +68,20 @@ def addUser(u_uuid, u_name, u_mail, u_password, u_date):
         u_password = base64.b64encode(u_password).decode()
         cursor.execute(f"SELECT id from `{settings.Database.user_table}` WHERE role = -1")
         result = cursor.fetchall()
-        cursor.execute(f"""INSERT INTO `{settings.Database.user_table}` (`uuid`, `name`, `mail`, `password`, `date`)
-                            VALUES (%s, %s, %s, %s, %s)""", (u_uuid, u_name, u_mail, u_password, u_date))
-        _, u_id = find_uid(u_mail)
-
+        if len(result) > 0:
+            p_id = result[0][0]
+            update(u_uuid, u_name, u_mail, u_password, u_pubkey, u_date, p_id)
+            cursor.execute(f"""UPDATE `{settings.Database.user_table}` 
+                                SET role=0 WHERE id=%s""", (p_id))
+        else:
+            cursor.execute(f"""INSERT INTO `{settings.Database.user_table}` (`uuid`, `name`, `mail`, `password`, `date`)
+                                VALUES (%s, %s, %s, %s, %s)""", (u_uuid, u_name, u_mail, u_password, u_date))
+            _, u_id = find_uid(u_mail)
+            cursor.execute(f"""INSERT INTO `{settings.Database.pubkey_table}` (`u_id`, `pubkey`)
+                                VALUES ({u_id}, %s)""", (u_pubkey))
         # 提交到数据库执行
         db.commit()
-        m = u_id
+        m = 'Added'
         print(m)
         return True, m
     except Exception as e:
@@ -99,27 +106,7 @@ def is_exist(u_mail):
         return True if status else False, results[0][0] if status else 0
     except Exception as e:
         print(repr(e))
-        return False
-
-
-def findAllKey(u_mail):
-    """根据邮箱查询密匙，返回所有公钥"""
-    db.ping(reconnect=True)
-    try:
-        cursor.execute(f"""SELECT id FROM `{settings.Database.user_table}`
-                                WHERE mail = %s""", u_mail)
-        results = cursor.fetchall()
-        row = results[0]
-        cursor.execute(f"""SELECT pubkey,info FROM `{settings.Database.pubkey_table}`
-                                WHERE u_id = %s""", row[0])
-        results = cursor.fetchall()
-        data = {
-            'pubkey': results,
-        }
-        return True, data
-    except Exception as e:
-        print(repr(e))
-        return False, errors.hack_warning
+        return True
 
 
 def find(u_mail):
@@ -127,7 +114,7 @@ def find(u_mail):
     db.ping(reconnect=True)
     try:
         cursor.execute(f"""SELECT id, name, mail, date, password FROM `{settings.Database.user_table}`
-                            WHERE mail = %s""", u_mail)
+                            WHERE mail = %s""", (u_mail))
         results = cursor.fetchall()
         row = results[0]
         u_id, name, mail, date, password = row
@@ -209,17 +196,30 @@ def delete(u_id):
         return False, repr(e)
 
 
+def query_password(u_mail):
+    """根据邮箱查询 password 字段"""
+    db.ping(reconnect=True)
+    sql = f"""SELECT password FROM `{settings.Database.user_table}` WHERE mail = %s"""
+    try:
+        cursor.execute(sql, u_mail)
+        # 获取所有记录列表
+        results = cursor.fetchall()
+        return True, results[0][0]
+    except Exception as e:
+        print(repr(e))
+        return False, errors.hack_warning
+
 def reformat_id(u_id):
     """重新排列 id 列"""
     db.ping(reconnect=True)
     if not u_id % 100:
         try:
             cursor.execute("ALTER TABLE `{table}` DROP `id`;".format(
-                table=settings.Database.table))
+                table=settings.Database.pubkey_table))
             cursor.execute("ALTER TABLE `{table}` ADD `id` INT NOT NULL FIRST;".format(
-                table=settings.Database.table))
+                table=settings.Database.pubkey_table))
             cursor.execute("ALTER TABLE `{table}` MODIFY COLUMN `id` INT NOT NULL \
-                AUTO_INCREMENT,ADD PRIMARY KEY(id);".format(table=settings.Database.table))
+                AUTO_INCREMENT,ADD PRIMARY KEY(id);".format(table=settings.Database.pubkey_table))
             db.commit()
             return True, 'reformated'
         except Exception as e:

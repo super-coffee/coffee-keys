@@ -1,8 +1,8 @@
-import json
 import base64
+import json
 
 from flask import Flask, redirect, render_template, request, session
-from flask_wtf.csrf import generate_csrf, CSRFProtect, CSRFError
+from flask_wtf.csrf import CSRFProtect, generate_csrf, CSRFError
 
 import database
 import errors
@@ -17,9 +17,14 @@ app.secret_key = "jiliguala%%#%^&&"
 
 @app.errorhandler(CSRFError)
 def csrf_error(reason):
+    reason = str(reason).split(':')[1]
     return render_template('error.html', code='400 CSRF Error', error=reason), 400
 
 
+@app.errorhandler(recaptcha.NoRecaptcha)
+def NoRecaptcha(reason):
+    reason = str(reason).split(':')[1]
+    return render_template('error.html', code='400 reCAPTCHA Error', error=reason), 400
 
 
 @app.after_request
@@ -27,7 +32,6 @@ def after_request(response):
     # 调用函数生成csrf token
     csrf_token = generate_csrf()
     # 设置cookie传给前端
-
     response.set_cookie('csrf_token', csrf_token)
     return response
 
@@ -57,8 +61,8 @@ def addNew():
         u_pubkey = request.form['pubkey']
         u_uuid = database.get_u_uuid(u_mail)
         u_date = database.get_u_date()
-        status, msg = database.addUser(
-            u_uuid, u_name, u_mail, u_password, u_date)
+        status, msg = database.add_new(
+            u_uuid, u_name, u_mail, u_password, u_pubkey, u_date)
         if status:
             return {'status': True, 'data': u_name}
         else:
@@ -72,20 +76,22 @@ def searchKey():
     u_mail = request.form['mail']
     exist, _ = database.is_exist(u_mail)
     if exist:
-        status, data = database.findAllKey(u_mail)
+        status, data = database.find(u_mail)
+        del(data['password'])
         return {'status': status, 'data': data}
     else:
         return {'status': exist, 'data': '信息不存在'}
 
 
 @app.route('/api/verifyPassword', methods=['POST'])
+@recaptcha.required_form
 def verifyPassword():
     if 'g-recaptcha-response' in request.form:
         g_recaptcha_response = request.form['g-recaptcha-response']
         if recaptcha.verify(g_recaptcha_response):
             u_mail = request.form['mail']
             u_password = request.form['password']
-            if database.is_exist(u_mail)[0]:
+            if database.is_exist(u_mail)[1]:
                 d_status, data = database.find(u_mail)
                 d_password = data['password']
                 u_username = data['name']
@@ -184,7 +190,7 @@ def deleteInfo():
                         id_status, u_id = database.find_uid(u_mail)
                         if id_status:
                             database.delete(u_id)
-                            status, msg = database.reformat_id()
+                            status, msg = database.reformat_id(1)
                             if status:
                                 return {'status': True, 'data': '删除成功，重新排序成功'}
                             else:
