@@ -7,6 +7,10 @@ A Key Server, which can store and distribute public key safely and quickly.
 简体中文 | [English](/README_en.md)
 
 ---
+
+UI 正在重构，请参考 [super-coffee/coffee-keys-go](https://github.com/super-coffee/coffee-keys-go)
+
+---
 ## 特点 👍
 - 轻巧：体积仅有 1.5Mb，采用前后端分离的架构，可拓展性强
 - 快捷：无需繁琐的注册，开箱即用
